@@ -4,7 +4,7 @@
   "description": "Backend for AI Decision Justification Tracker",
   "main": "server.js",
   "scripts": {
-    "start": "npx prisma generate && npx prisma db push --force-reset --accept-data-loss && node server.js",
+    "start": "npx prisma generate && npx prisma db push --accept-data-loss && node server.js",
     "start:prod": "node server.js",
     "dev": "nodemon server.js",
     "migrate": "npx prisma migrate dev",
