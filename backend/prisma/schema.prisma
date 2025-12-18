@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Decision {
+  id              Int       @id @default(autoincrement())
+  title           String
+  description     String
+  reasoning       String    @db.Text
+  assumptions     String    @db.Text
+  expectedOutcome String    @db.Text
+  createdAt       DateTime  @default(now())
+
+  outcome   Outcome?
+  analysis  Analysis?
+}
+
+model Outcome {
+  id           Int      @id @default(autoincrement())
+  actualOutcome String  @db.Text
+  reflection   String? @db.Text
+
+  decisionId Int     @unique
+  decision   Decision @relation(fields: [decisionId], references: [id])
+}
+
+model Analysis {
+  id         Int      @id @default(autoincrement())
+  result     String   @db.Text
+  createdAt  DateTime @default(now())
+
+  decisionId Int      @unique
+  decision   Decision @relation(fields: [decisionId], references: [id])
+}
