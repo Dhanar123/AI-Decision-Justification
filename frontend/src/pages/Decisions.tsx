@@ -1,6 +1,6 @@
 import { PlusIcon } from '@heroicons/react/20/solid';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../lib/apiClient';
 
 interface Decision {
@@ -13,12 +13,20 @@ interface Decision {
 export default function Decisions() {
   const navigate = useNavigate();
   
-  const { data: decisions = [], isLoading } = useQuery<Decision[]>({
+  const { data: decisions = [], isLoading, error } = useQuery<Decision[]>({
     queryKey: ['decisions'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/decisions');
-      return data;
+      try {
+        const { data } = await apiClient.get('/decisions');
+        return data;
+      } catch (error: any) {
+        console.error('Error fetching decisions:', error);
+        // Return empty array on error instead of throwing
+        return [];
+      }
     },
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   return (
@@ -48,6 +56,28 @@ export default function Decisions() {
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
               {isLoading ? (
                 <div className="p-4 text-center text-gray-500">Loading...</div>
+              ) : error ? (
+                <div className="p-6 text-center">
+                  <div className="rounded-md bg-yellow-50 p-4">
+                    <div className="flex">
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-yellow-800">
+                          Unable to connect to backend
+                        </h3>
+                        <div className="mt-2 text-sm text-yellow-700">
+                          <p>Please check if the backend API is running.</p>
+                          <p className="mt-1 text-xs">API URL: {import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : decisions.length === 0 ? (
                 <div className="text-center p-6">
                   <svg
@@ -109,9 +139,9 @@ export default function Decisions() {
                           {new Date(decision.createdAt).toLocaleDateString()}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <a href={`/decisions/${decision.id}`} className="text-primary-600 hover:text-primary-900">
+                          <Link to={`/decisions/${decision.id}`} className="text-primary-600 hover:text-primary-900">
                             View<span className="sr-only">, {decision.title}</span>
-                          </a>
+                          </Link>
                         </td>
                       </tr>
                     ))}
