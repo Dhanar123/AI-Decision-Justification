@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getDecisionById, addOutcome, type Decision } from '../lib/api';
+import { apiClient } from '../lib/apiClient';
+import type { Decision } from '../lib/api';
 
 const OutcomeFollowUpForm = () => {
   const { id } = useParams();
@@ -13,15 +14,25 @@ const OutcomeFollowUpForm = () => {
   });
 
   // Fetch the decision data
-  const { data: response, isLoading, error } = useQuery({
+  const { data: decision, isLoading, error } = useQuery<Decision>({
     queryKey: ['decision', id],
-    queryFn: () => getDecisionById(id!).then(res => res.data)
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/decisions/${id}`);
+      // Parse assumptions if it's a string
+      if (typeof data.assumptions === 'string') {
+        data.assumptions = JSON.parse(data.assumptions);
+      }
+      return data;
+    }
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: { actualOutcome: string; reflectionNotes: string }) => {
-      const response = await addOutcome(id!, data);
-      return response.data;
+    mutationFn: async (data: { actualOutcome: string; reflection: string }) => {
+      const { data: response } = await apiClient.post(`/decisions/${id}/outcome`, {
+        actualOutcome: data.actualOutcome,
+        reflection: data.reflection
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['decision', id] });
@@ -42,15 +53,13 @@ const OutcomeFollowUpForm = () => {
     e.preventDefault();
     mutation.mutate({
       actualOutcome: formData.actualOutcome,
-      reflectionNotes: formData.reflectionNotes
+      reflection: formData.reflectionNotes
     });
   };
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading decision</div>;
-  if (!response) return <div>Decision not found</div>;
-  
-  const decision = response;
+  if (!decision) return <div>Decision not found</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -72,7 +81,7 @@ const OutcomeFollowUpForm = () => {
           <div className="mt-2">
             <p className="font-medium mb-1">Assumptions:</p>
             <ul className="list-disc pl-5 space-y-1">
-              {decision.assumptions.map((assumption, index) => (
+              {decision.assumptions.map((assumption: string, index: number) => (
                 <li key={index} className="text-gray-700">{assumption}</li>
               ))}
             </ul>
