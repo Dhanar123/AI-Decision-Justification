@@ -61,13 +61,29 @@ const generateAnalysis = async (decision) => {
 const parseAnalysisResponse = (content) => {
   // This is a simple parser that looks for specific section headers
   // You might need to adjust this based on the actual AI response format
-  const sections = content.split(/\d+\.\s+/).filter(section => section.trim());
+  
+  // Split by section headers (more robust approach)
+  const comparisonMatch = content.match(/1\.\s*Comparison[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i);
+  const assumptionsMatch = content.match(/2\.\s*.*?assumptions[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i);
+  const lessonsMatch = content.match(/3\.\s*.*?lessons[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i);
+  const improvementsMatch = content.match(/4\.\s*.*?improvements|suggestions[^:]*:\s*([\s\S]*?)(?=\d+\.|$)/i);
+  
+  // Parse invalid assumptions as an array
+  let invalidAssumptions = [];
+  if (assumptionsMatch && assumptionsMatch[1]) {
+    // Split by line breaks and filter out empty lines and bullet points
+    invalidAssumptions = assumptionsMatch[1]
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.match(/^\s*[-*•]\s*$/))
+      .map(line => line.replace(/^\s*[-*•]\s*/, '')); // Remove bullet points
+  }
   
   return {
-    comparison: sections[0]?.replace('Comparison between expected and actual outcomes', '').trim() || 'No comparison provided',
-    invalidAssumptions: sections[1]?.replace('List of invalid or weak assumptions', '').trim().split('\n').filter(Boolean) || [],
-    lessonsLearned: sections[2]?.replace('Key lessons learned', '').trim() || 'No lessons learned provided',
-    improvements: sections[3]?.replace('Suggestions for improving future decisions', '').trim() || 'No improvement suggestions provided',
+    comparison: comparisonMatch ? comparisonMatch[1].trim() : 'No comparison provided',
+    invalidAssumptions: invalidAssumptions,
+    lessonsLearned: lessonsMatch ? lessonsMatch[1].trim() : 'No lessons learned provided',
+    improvements: improvementsMatch ? improvementsMatch[1].trim() : 'No improvement suggestions provided',
   };
 };
 

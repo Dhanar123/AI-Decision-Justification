@@ -97,8 +97,14 @@ exports.getDecisionById = async (req, res) => {
       return res.status(404).json({ error: 'Decision not found' });
     }
 
-    console.log('Decision found:', decision);
-    res.status(200).json(decision);
+    // Parse assumptions from JSON string to array for the frontend
+    const decisionWithParsedAssumptions = {
+      ...decision,
+      assumptions: JSON.parse(decision.assumptions || '[]'),
+    };
+
+    console.log('Decision found:', decisionWithParsedAssumptions);
+    res.status(200).json(decisionWithParsedAssumptions);
   } catch (error) {
     console.error('Error fetching decision:', error);
     res.status(500).json({ error: 'Failed to fetch decision', details: error.message });
@@ -150,14 +156,17 @@ exports.addOutcome = async (req, res) => {
       }
     });
 
-    console.log('Outcome created successfully:', outcome);
-    res.status(201).json({
+    // Parse assumptions from JSON string to array for the frontend
+    const outcomeWithParsedAssumptions = {
       ...outcome,
       decision: {
         ...outcome.decision,
         assumptions: JSON.parse(outcome.decision.assumptions || '[]')
       }
-    });
+    };
+
+    console.log('Outcome created successfully:', outcomeWithParsedAssumptions);
+    res.status(201).json(outcomeWithParsedAssumptions);
   } catch (error) {
     console.error('Error adding outcome:', error);
     res.status(500).json({ error: 'Failed to add outcome', details: error.message });
@@ -217,11 +226,21 @@ exports.generateAnalysis = async (req, res) => {
       }
     });
 
-    console.log('Analysis generated successfully:', analysis);
-    res.status(201).json({
+    // Parse assumptions from JSON string to array for the frontend
+    const decisionWithParsedAssumptions = {
+      ...decision,
+      assumptions: JSON.parse(decision.assumptions || '[]'),
+    };
+
+    // Include the updated decision with parsed assumptions in the response
+    const analysisWithDecision = {
       ...analysis,
+      decision: decisionWithParsedAssumptions,
       result: analysisResult // Send parsed result to frontend
-    });
+    };
+
+    console.log('Analysis generated successfully:', analysisWithDecision);
+    res.status(201).json(analysisWithDecision);
   } catch (error) {
     console.error('Error generating analysis:', error);
     res.status(500).json({ 
